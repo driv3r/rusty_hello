@@ -6,7 +6,7 @@ require "rspec/core/rake_task"
 RSpec::Core::RakeTask.new(:spec)
 
 task :rust_build do
-  `cargo rustc --release`
+  `cargo rustc --release --target=#{ ENV.fetch("TARGET") { "x86_64-unknown-linux-gnu" } }`
   `mv -f ./target/release/librusty_hello.so ./lib/rusty_hello/`
 end
 
