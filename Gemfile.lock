@@ -2,11 +2,13 @@ PATH
   remote: .
   specs:
     rusty_hello (0.1.0)
+      ffi
 
 GEM
   remote: https://rubygems.org/
   specs:
     diff-lcs (1.4.4)
+    ffi (1.13.1)
     rake (13.0.1)
     rspec (3.10.0)
       rspec-core (~> 3.10.0)
