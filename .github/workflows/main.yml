@@ -2,17 +2,39 @@ name: Ruby
 
 on: [push,pull_request]
 
+env:
+  TARGET: x86_64-unknown-linux-gnu
+
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: |
+          ~/.cargo/registry
+          ~/.cargo/git
+          target
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - uses: actions/cache@v2
+      with:
+        path: vendor/bundle
+        key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock')}}-ruby-2.7.1
+
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
       with:
-        ruby-version: 2.7.1
-    - name: Run the default task
+          toolchain: stable
+          override: true
+          target: ${{ env.TARGET }}
+
+    - name: Setthe default task
       run: |
         gem install bundler -v 2.2.0
         bundle install
         bundle exec rake
+
+
