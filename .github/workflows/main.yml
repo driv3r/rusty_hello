@@ -24,6 +24,7 @@ jobs:
             ext: dylib
           - target: x86_64-pc-windows-msvc
             os: windows-latest
+            ext: dll
 
     runs-on: ${{ matrix.os }}
 
@@ -60,20 +61,16 @@ jobs:
         run: |
           cargo build --release --target ${{ matrix.target }}
 
-      - name: Check contents
-        if: matrix.os == 'windows-latest'
-        run: |
-          ls target/${{ matrix.target }}/release/  | Sort-Object -Property LastWriteTime
-
       - uses: actions/upload-artifact@v2
-        if: false
         with:
           name: rusty_hello-rs-${{ matrix.os }}
           path: target/${{ matrix.target }}/release/librusty_hello.${{ matrix.ext }}
 
   build:
-    runs-on: ubuntu-20.04
-    if: false
+    runs-on: ubuntu-latest
+
+    needs: [cross_compile]
+
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
@@ -112,7 +109,6 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     needs: [build]
-    if: false
 
     steps:
     - uses: actions/checkout@v2
