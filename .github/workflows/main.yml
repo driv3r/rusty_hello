@@ -6,17 +6,73 @@ env:
   TARGET: x86_64-unknown-linux-gnu
 
 jobs:
+  # borrowed from https://github.com/bytecodealliance/cargo-wasi/
+  # workflow setup
+  cross_compile:
+    strategy:
+      matrix:
+        target:
+          - x86_64-apple-darwin
+          - x86_64-unknown-linux-gnu
+          - x86_64-pc-windows-msvc
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            override: true
+            target: ${{ matrix.target }}
+
+      # Target older versions of OSX (as old as we reasonably can) to ensure we
+      # can run across a wide variety of systems.
+      - name: Configure OSX deployment target
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo MACOSX_DEPLOYMENT_TARGET=10.7 >> $GITHUB_ENV
+
+      # Don't link the CRT dynamically to increase our binary compatibility.
+      - name: Configure Windows build flags
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo RUSTFLAGS=-Ctarget-feature=+crt-static >> $GITHUB_ENV
+
+      - name: Compile
+        run: |
+          cargo build --release --target ${{ matrix.target }}
+
+      - name: Check contents
+        run: |
+          ls -lh target/${{ matrix.target }}/release/
+
+      - uses: actions/upload-artifact@v2
+        if: false
+        with:
+          name: rusty_hello-rs-${{ matrix.os }}
+          path: target/${{ matrix.target }}/release/librusty_hello.*
+
   build:
     runs-on: ubuntu-20.04
+    if: false
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/cache@v2
-      with:
-        path: |
-          ~/.cargo/registry
-          ~/.cargo/git
-          target
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     - uses: actions/cache@v2
       with:
         path: vendor/bundle
@@ -24,18 +80,16 @@ jobs:
 
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
-    - name: Set up Rust
-      uses: actions-rs/toolchain@v1
-      with:
-          toolchain: stable
-          override: true
-          target: ${{ env.TARGET }}
+
+    - name: Pull compiled libraries
+      uses: actions/download-artifact@v2
+        path: lib/rusty_hello/
 
     - name: Default task
       run: |
         gem install bundler -v 2.2.0
         bundle install --path vendor/bundle
-        bundle exec rake
+        bundle exec rspec
 
     - name: Build gem
       run: |
@@ -54,6 +108,7 @@ jobs:
 
     runs-on: ${{ matrix.os }}
     needs: [build]
+    if: false
 
     steps:
     - uses: actions/checkout@v2
@@ -62,16 +117,12 @@ jobs:
     - uses: actions/download-artifact@v2
       with:
         name: rusty_hello.gem
-        path: .
     - name: Install gem
       run: |
         gem install rusty_hello.gem
-    - name: Check if there are different params
-      run: |
-        ruby --help
     - name: Test FFI Platform
       run: |
-        ruby -rrubygems -e "require 'ffi'; puts(\"FFI Platform Suffix: #{::FFI::Platform::LIBSUFFIX}\")"
+        ruby test_ffi.rb
     - name: Test Gem
       run: |
-        ruby -rrubygems -e "require 'rusty_hello'; puts(\"Test: #{RustyHello[7]}\")"
+        ruby test_gem.rb
