@@ -2,9 +2,6 @@ name: Ruby
 
 on: [push]
 
-env:
-  TARGET: x86_64-unknown-linux-gnu
-
 jobs:
   # borrowed from https://github.com/bytecodealliance/cargo-wasi/
   # workflow setup
@@ -51,20 +48,31 @@ jobs:
         run: |
           echo MACOSX_DEPLOYMENT_TARGET=10.7 >> $GITHUB_ENV
 
-      # Don't link the CRT dynamically to increase our binary compatibility.
-      - name: Configure Windows build flags
-        if: matrix.os == 'windows-latest'
-        run: |
-          echo RUSTFLAGS=-Ctarget-feature=+crt-static >> $GITHUB_ENV
-
       - name: Compile
         run: |
           cargo build --release --target ${{ matrix.target }}
 
+      - name: Inspect (unix)
+        if: ${{ matrix.os != 'windows-latest' }}
+        run: |
+          ls -lh target/${{ matrix.target }}/release/
+
+      - name: Inspect (win)
+        if: ${{ matrix.os == 'windows-latest' }}
+        run: |
+          ls target\${{matrix.target}}/release/  | Sort-Object -Property LastWriteTime
+
       - uses: actions/upload-artifact@v2
+        if: ${{ matrix.os != 'windows-latest' }}
         with:
           name: rusty_hello-rs-${{ matrix.os }}
-          path: target/${{ matrix.target }}/release/librusty_hello.${{ matrix.ext }}
+          path: target/${{ matrix.target }}/release/librusty_hello.*
+
+      - uses: actions/upload-artifact@v2
+        if: ${{ matrix.os == 'windows-latest' }}
+        with:
+          name: rusty_hello-rs-${{ matrix.os }}
+          path: target\${{ matrix.target }}\release\librusty_hello.*
 
   build:
     runs-on: ubuntu-latest
