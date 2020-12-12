@@ -55,7 +55,7 @@ jobs:
       - name: Inspect (unix)
         if: ${{ matrix.os != 'windows-latest' }}
         run: |
-          ls -lh target/${{ matrix.target }}/release/
+          ls -lhR target/${{ matrix.target }}/release/
 
       - name: Inspect (win)
         if: ${{ matrix.os == 'windows-latest' }}
@@ -72,7 +72,7 @@ jobs:
         if: ${{ matrix.os == 'windows-latest' }}
         with:
           name: rusty_hello-rs-${{ matrix.os }}
-          path: target\${{ matrix.target }}\release\librusty_hello.*
+          path: target\${{ matrix.target }}\release\rusty_hello.*
 
   build:
     runs-on: ubuntu-latest
@@ -89,10 +89,15 @@ jobs:
     - name: Set up Ruby
       uses: ruby/setup-ruby@v1
 
-    - name: Pull compiled libraries
-      uses: actions/download-artifact@v2
+    - uses: actions/download-artifact@v2
       with:
-        path: lib/rusty_hello/
+        path: dist/
+
+    - name: Move libs to gem
+      run: |
+        mv dist/rusty_hello-rs-macos-latest/* lib/rusty_hello/
+        mv dist/rusty_hello-rs-ubuntu-latest/* lib/rusty_hello/
+        mv dist/rusty_hello-rs-windows-latest/* lib/rusty_hello/
 
     - name: Default task
       run: |
