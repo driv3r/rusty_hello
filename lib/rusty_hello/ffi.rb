@@ -6,7 +6,13 @@ module RustyHello
 
     extend ::FFI::Library
 
-    ffi_lib File.expand_path("librusty_hello.#{::FFI::Platform::LIBSUFFIX}", __dir__)
+    lib_name =
+      case ::FFI::Platform::LIBSUFFIX
+      when "so", "dylib" then "librusty_hello"
+      when "ddl" then "rusty_hello"
+      end
+
+    ffi_lib File.expand_path("#{lib_name}.#{::FFI::Platform::LIBSUFFIX}", __dir__)
 
     attach_function :fib, [:uint], :uint
 
