@@ -31,10 +31,40 @@ jobs:
           override: true
           target: ${{ env.TARGET }}
 
-    - name: Setthe default task
+    - name: Default task
       run: |
         gem install bundler -v 2.2.0
-        bundle install
+        bundle install --path vendor/bundle
         bundle exec rake
 
+    - name: Build gem
+      run: |
+        gem build rusty_hello.gemspec --output=rusty_hello.gem
 
+    - uses: actions/upload-artifact@v2
+      with:
+        name: rusty_hello.gem
+        path: rusty_hello.gem
+
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, ubuntu-20.04, macos-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+    - uses: actions/download-artifact@v2
+      with:
+        name: rusty_hello.gem
+        path: .
+    - name: Install gem
+      run: |
+        gem install rusty_hello.gem
+    - name: Test gem
+      run: |
+        ruby -rffi -e 'puts("FFI Platform Suffix: #{::FFI::Platform::LIBSUFFIX}")'
+        ruby -rrusty_hello -e 'puts("Test: #{RustyHello[7]}")'
