@@ -52,6 +52,7 @@ jobs:
         os: [ubuntu-18.04, ubuntu-20.04, macos-latest, windows-latest]
 
     runs-on: ${{ matrix.os }}
+    needs: [build]
 
     steps:
     - uses: actions/checkout@v2
