@@ -9,7 +9,7 @@ module RustyHello
     lib_name =
       case ::FFI::Platform::LIBSUFFIX
       when "so", "dylib" then "librusty_hello"
-      when "ddl" then "rusty_hello"
+      when "dll" then "rusty_hello"
       end
 
     ffi_lib File.expand_path("#{lib_name}.#{::FFI::Platform::LIBSUFFIX}", __dir__)
